@@ -104,11 +104,6 @@
     { key:'huge',   max:Infinity,color:'#e08b6a', label:'huge'   },
   ];
   function sizeOf(a) { return SIZES.find(s => a.sprites < s.max) || SIZES[SIZES.length-1]; }
-  function compact(n) {
-    if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
-    if (n >= 1e3) return Math.round(n/1e3)+'k';
-    return String(n);
-  }
 
   // ---- persisted state (localStorage) ----------------------------------------
   const FAV_KEY = 'wakfu.favs', RECENT_KEY = 'wakfu.recents';
@@ -148,7 +143,7 @@
       ${dl}
       ${thumb}
       <div class="top"><span class="area">#${a.area}</span>${badge(a.type)}</div>
-      <div class="meta"><span class="size" style="background:${sz.color}">${sz.label}</span> · ${compact(a.sprites)} sprites${tag}</div>
+      <div class="meta"><span class="size" style="background:${sz.color}">${sz.label}</span>${tag}</div>
     </a>`;
   }
 
@@ -223,7 +218,7 @@
       extracted = new Set(m.areas);
     } catch (_) { extracted = null; }  // no manifest yet => treat all as ready
     document.getElementById('sub').textContent =
-      `${idx.count} explorable map areas · classified by composition`;
+      `${idx.count} explorable map areas`;
     buildChips();
     render();
   })();
