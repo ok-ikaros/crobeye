@@ -1,0 +1,15 @@
+# Generated map data (extracted from your local Wakfu install — large, regenerate
+# with the tools/ scripts; not meant to live in git).
+viewer/data/
+
+# Full-resolution PNG exports (multi-GB; regenerate with tools/export_maps.py).
+exports/
+
+# Python / OS cruft
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+
+# Local-only Claude Code tool permissions (per-user, not useful in the repo)
+.claude/settings.local.json

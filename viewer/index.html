@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crobeye · Wakfu Map Explorer</title>
+  <style>
+    :root { --bg:#1b2330; --panel:#222c3c; --line:#33405a; --fg:#cdd6e4; --muted:#8a97ad; --gold:#f4c542; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--fg);
+      font:13px/1.5 ui-monospace, Menlo, monospace; }
+    header { position:sticky; top:0; z-index:5; background:var(--bg);
+      border-bottom:1px solid var(--line); padding:14px 18px 10px; }
+    h1 { margin:0 0 2px; font-size:16px; }
+    .sub { color:var(--muted); font-size:12px; margin-bottom:10px; }
+    .controls { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    .types { display:flex; gap:6px; flex-wrap:wrap; }
+    .chip { cursor:pointer; padding:3px 9px; border-radius:14px; border:1px solid var(--line);
+      background:var(--panel); color:var(--fg); user-select:none; font-size:12px; }
+    .chip.on { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+    .chip.fav.on { background:var(--gold); color:#1b160a; border-color:var(--gold); }
+    .chip .n { opacity:.6; margin-left:5px; }
+    input, select { background:var(--panel); color:var(--fg); border:1px solid var(--line);
+      border-radius:6px; padding:5px 8px; font:inherit; }
+    main { padding:16px 18px 40px; }
+    .section-title { font-size:12px; color:var(--muted); text-transform:uppercase;
+      letter-spacing:.06em; margin:4px 0 9px; display:flex; align-items:center; gap:8px; }
+    .section-title .clear { cursor:pointer; color:var(--muted); border:1px solid var(--line);
+      border-radius:10px; padding:1px 8px; font-size:10.5px; text-transform:none; }
+    .section-title .clear:hover { color:var(--fg); border-color:var(--fg); }
+    .grid { display:grid; gap:10px;
+      grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); }
+    .rail { display:grid; gap:10px; grid-auto-flow:column;
+      grid-auto-columns:minmax(190px, 190px);
+      overflow-x:auto; padding-bottom:8px; margin-bottom:18px; }
+    a.card { position:relative; display:block; text-decoration:none; color:inherit;
+      background:var(--panel); border:1px solid var(--line); border-radius:9px;
+      padding:10px 11px; transition:.12s; }
+    a.card:hover { border-color:var(--fg); transform:translateY(-1px); }
+    .thumb { width:100%; aspect-ratio:16/10; background:#11161f; border-radius:6px;
+      object-fit:contain; display:block; margin-bottom:8px; }
+    .thumb.ph { display:flex; align-items:center; justify-content:center;
+      color:#3a475e; font-size:11px; }
+    .card .top { display:flex; justify-content:space-between; align-items:baseline; padding-right:22px; }
+    .area { font-size:15px; font-weight:600; }
+    .badge { font-size:10.5px; padding:2px 7px; border-radius:10px; color:#11161f; font-weight:600; }
+    .meta { color:var(--muted); font-size:11.5px; margin-top:5px; }
+    .size { font-size:10.5px; padding:2px 7px; border-radius:10px; font-weight:600;
+      color:#11161f; }
+    .star { position:absolute; top:7px; right:8px; cursor:pointer; border:none; background:none;
+      font-size:17px; line-height:1; color:#46546e; padding:2px; z-index:2; }
+    .star:hover { color:var(--gold); }
+    .star.on { color:var(--gold); }
+    .dl { position:absolute; top:9px; right:34px; cursor:pointer; border:none; background:none;
+      font-size:14px; line-height:1; color:#46546e; padding:2px; z-index:2; }
+    .dl:hover { color:var(--fg); }
+    .count { color:var(--muted); font-size:12px; }
+    footer { color:var(--muted); padding:0 18px 30px; font-size:11.5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Crobeye</h1>
+    <div class="sub" id="sub">loading…</div>
+    <div class="controls">
+      <div class="types" id="types"></div>
+      <span class="chip fav" id="favChip">★ favorites <span class="n" id="favN">0</span></span>
+      <input id="q" placeholder="search area id…" size="14" />
+      <select id="sort">
+        <option value="size">sort: size</option>
+        <option value="area">sort: area id</option>
+        <option value="type">sort: type</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+  </header>
+  <main>
+    <section id="recentSec" style="display:none">
+      <div class="section-title">Recently viewed
+        <span class="clear" id="clearRecent">clear</span>
+      </div>
+      <div class="rail" id="recentRail"></div>
+    </section>
+    <div class="grid" id="grid"></div>
+  </main>
+  <footer>
+    <b>Crobeye</b> — a crow's-eye view of every Wakfu map. Types are <b>inferred</b>
+    from each map's tile-colour composition + structural signals (not official game
+    labels); size is bucketed by sprite count. Click a map to explore it. Star ★ to favorite.
+  </footer>
+
+  <script>
+  const TYPE_COLORS = {
+    island:'#5fc9d6', coastal:'#7fd0c0', 'open-water':'#4b8fd6',
+    forest:'#6cc46b', grassland:'#a6d36a', desert:'#e3c878',
+    town:'#c9b6a0', dungeon:'#9a8fb0', cavern:'#c89a6a',
+    interior:'#c0a0c0', mixed:'#9aa6bb',
+  };
+  // generalized map-size tag, derived from sprite count
+  const SIZES = [
+    { key:'small',  max:1000,    color:'#7fd0c0', label:'small'  },
+    { key:'medium', max:10000,   color:'#a6d36a', label:'medium' },
+    { key:'large',  max:50000,   color:'#e3c878', label:'large'  },
+    { key:'huge',   max:Infinity,color:'#e08b6a', label:'huge'   },
+  ];
+  function sizeOf(a) { return SIZES.find(s => a.sprites < s.max) || SIZES[SIZES.length-1]; }
+  function compact(n) {
+    if (n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+    if (n >= 1e3) return Math.round(n/1e3)+'k';
+    return String(n);
+  }
+
+  // ---- persisted state (localStorage) ----------------------------------------
+  const FAV_KEY = 'wakfu.favs', RECENT_KEY = 'wakfu.recents';
+  const loadSet = (k) => { try { return new Set(JSON.parse(localStorage.getItem(k)||'[]')); } catch { return new Set(); } };
+  const loadArr = (k) => { try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch { return []; } };
+  let favs = loadSet(FAV_KEY);
+  let recents = loadArr(RECENT_KEY);
+  const saveFavs = () => localStorage.setItem(FAV_KEY, JSON.stringify([...favs]));
+
+  function toggleFav(area) {
+    if (favs.has(area)) favs.delete(area); else favs.add(area);
+    saveFavs();
+  }
+
+  let DATA = [], byArea = {}, extracted = null;
+  const active = new Set();
+  let favOnly = false;
+
+  function badge(t) {
+    const c = TYPE_COLORS[t] || '#9aa6bb';
+    return `<span class="badge" style="background:${c}">${t}</span>`;
+  }
+  function card(a) {
+    const ready = !extracted || extracted.has(a.area);
+    const sz = sizeOf(a);
+    const tag = ready ? '' : ` · rendering…`;
+    const star = favs.has(a.area) ? 'on' : '';
+    const thumb = ready
+      ? `<img class="thumb" loading="lazy" src="./data/${a.area}/thumb.png"
+            onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumb ph',textContent:'no preview'}))" />`
+      : `<div class="thumb ph">rendering…</div>`;
+    const dl = ready
+      ? `<button class="dl" data-dl="${a.area}" title="download full map as PNG">⤓</button>`
+      : '';
+    return `<a class="card" href="./view.html?area=${a.area}"${ready?'':' style="opacity:.6"'}>
+      <button class="star ${star}" data-area="${a.area}" title="favorite">${favs.has(a.area)?'★':'☆'}</button>
+      ${dl}
+      ${thumb}
+      <div class="top"><span class="area">#${a.area}</span>${badge(a.type)}</div>
+      <div class="meta"><span class="size" style="background:${sz.color}">${sz.label}</span> · ${compact(a.sprites)} sprites${tag}</div>
+    </a>`;
+  }
+
+  function renderRecent() {
+    const sec = document.getElementById('recentSec');
+    const rows = recents.map(id => byArea[id]).filter(Boolean);
+    if (!rows.length) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+    document.getElementById('recentRail').innerHTML = rows.map(card).join('');
+  }
+
+  function render() {
+    const q = document.getElementById('q').value.trim();
+    const sort = document.getElementById('sort').value;
+    let rows = DATA.filter(a => active.size===0 || active.has(a.type));
+    if (favOnly) rows = rows.filter(a => favs.has(a.area));
+    if (q) rows = rows.filter(a => String(a.area).includes(q));
+    rows.sort((x,y) => sort==='type' ? x.type.localeCompare(y.type)||y.sprites-x.sprites
+      : sort==='area' ? x.area-y.area : y.sprites-x.sprites);
+    document.getElementById('grid').innerHTML = rows.map(card).join('');
+    document.getElementById('count').textContent = `${rows.length} maps`;
+    document.getElementById('favN').textContent = favs.size;
+    renderRecent();
+  }
+
+  function buildChips() {
+    const counts = {};
+    for (const a of DATA) counts[a.type] = (counts[a.type]||0)+1;
+    const order = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+    document.getElementById('types').innerHTML = order.map(t =>
+      `<span class="chip" data-t="${t}" style="border-color:${TYPE_COLORS[t]}">${t}<span class="n">${counts[t]}</span></span>`).join('');
+    document.querySelectorAll('.types .chip').forEach(el => el.onclick = () => {
+      const t = el.dataset.t;
+      if (active.has(t)) { active.delete(t); el.classList.remove('on'); }
+      else { active.add(t); el.classList.add('on'); }
+      render();
+    });
+  }
+
+  // star + download clicks (event delegation; don't navigate the card link)
+  document.querySelector('main').addEventListener('click', (e) => {
+    const s = e.target.closest('.star');
+    if (s) {
+      e.preventDefault(); e.stopPropagation();
+      toggleFav(+s.dataset.area);
+      render();
+      return;
+    }
+    const d = e.target.closest('.dl');
+    if (d) {
+      e.preventDefault(); e.stopPropagation();
+      // open the map in a background tab that auto-renders, downloads, and closes
+      window.open(`./view.html?area=${d.dataset.dl}&dl=1`, '_blank');
+    }
+  });
+
+  document.getElementById('favChip').onclick = () => {
+    favOnly = !favOnly;
+    document.getElementById('favChip').classList.toggle('on', favOnly);
+    render();
+  };
+  document.getElementById('clearRecent').onclick = () => {
+    recents = []; localStorage.setItem(RECENT_KEY, '[]'); renderRecent();
+  };
+
+  (async () => {
+    const idx = await (await fetch('./index.json', {cache:'no-store'})).json();
+    DATA = idx.areas;
+    for (const a of DATA) byArea[a.area] = a;
+    try {
+      const m = await (await fetch('./data/manifest.json', {cache:'no-store'})).json();
+      extracted = new Set(m.areas);
+    } catch (_) { extracted = null; }  // no manifest yet => treat all as ready
+    document.getElementById('sub').textContent =
+      `${idx.count} explorable map areas · classified by composition`;
+    buildChips();
+    render();
+  })();
+  document.getElementById('q').oninput = render;
+  document.getElementById('sort').onchange = render;
+  </script>
+</body>
+</html>

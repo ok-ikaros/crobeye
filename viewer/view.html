@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crobeye · Map Viewer</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #1b2330; overflow: hidden;
+      font: 12px/1.4 ui-monospace, Menlo, monospace; color: #cdd6e4; }
+    #app { position: fixed; inset: 0; }
+    #hud { position: fixed; top: 8px; left: 8px; padding: 6px 9px;
+      background: rgba(0,0,0,.45); border-radius: 6px; pointer-events: none;
+      white-space: pre; }
+    #hint { position: fixed; bottom: 8px; left: 8px; padding: 6px 9px;
+      background: rgba(0,0,0,.45); border-radius: 6px; opacity: .75; }
+    #topbar { position: fixed; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center; }
+    #topbar a, #topbar button { padding: 6px 10px; background: rgba(0,0,0,.55);
+      border-radius: 6px; color: #cdd6e4; text-decoration: none; border: none;
+      font: inherit; cursor: pointer; }
+    #topbar a:hover, #topbar button:hover { background: rgba(0,0,0,.8); }
+    #fav.on { color: #f4c542; }
+  </style>
+  <script type="importmap">
+  { "imports": { "pixi.js": "https://cdn.jsdelivr.net/npm/pixi.js@8.6.6/dist/pixi.min.mjs" } }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud">loading…</div>
+  <div id="topbar">
+    <button id="fav" title="favorite this map (F)">☆ favorite</button>
+    <button id="save" title="save map as PNG (S)">⤓ PNG</button>
+    <a id="back" href="./index.html">← all maps</a>
+  </div>
+  <div id="hint">scroll = zoom · drag = pan · R = reset view · B = blend-tile overlay · L = baked lighting · F = favorite · S = save PNG</div>
+  <script type="module" src="./main.js?10"></script>
+</body>
+</html>
