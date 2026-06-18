@@ -11,8 +11,7 @@
       font:13px/1.5 ui-monospace, Menlo, monospace; }
     header { position:sticky; top:0; z-index:5; background:var(--bg);
       border-bottom:1px solid var(--line); padding:14px 18px 10px; }
-    h1 { margin:0 0 2px; font-size:16px; }
-    .sub { color:var(--muted); font-size:12px; margin-bottom:10px; }
+    h1 { margin:0 0 10px; font-size:16px; }
     .controls { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
     .types { display:flex; gap:6px; flex-wrap:wrap; }
     .chip { cursor:pointer; padding:3px 9px; border-radius:14px; border:1px solid var(--line);
@@ -62,7 +61,6 @@
 <body>
   <header>
     <h1>Crobeye</h1>
-    <div class="sub" id="sub">loading…</div>
     <div class="controls">
       <div class="types" id="types"></div>
       <span class="chip fav" id="favChip">★ favorites <span class="n" id="favN">0</span></span>
@@ -219,8 +217,6 @@
       const m = await (await fetch('./data/manifest.json', {cache:'no-store'})).json();
       extracted = new Set(m.areas);
     } catch (_) { extracted = null; }  // no manifest yet => treat all as ready
-    document.getElementById('sub').textContent =
-      `${idx.count} explorable map areas`;
     buildChips();
     render();
   })();
