@@ -41,7 +41,8 @@
       object-fit:contain; display:block; margin-bottom:8px; }
     .thumb.ph { display:flex; align-items:center; justify-content:center;
       color:#3a475e; font-size:11px; }
-    .card .top { display:flex; justify-content:space-between; align-items:baseline; padding-right:22px; }
+    .card .top { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+    .card .tags { display:flex; align-items:center; gap:5px; }
     .area { font-size:15px; font-weight:600; }
     .badge { font-size:10.5px; padding:2px 7px; border-radius:10px; color:#11161f; font-weight:600; }
     .meta { color:var(--muted); font-size:11.5px; margin-top:5px; }
@@ -129,7 +130,7 @@
   function card(a) {
     const ready = !extracted || extracted.has(a.area);
     const sz = sizeOf(a);
-    const tag = ready ? '' : ` · rendering…`;
+    const tag = ready ? '' : `rendering…`;
     const star = favs.has(a.area) ? 'on' : '';
     const thumb = ready
       ? `<img class="thumb" loading="lazy" src="./data/${a.area}/thumb.png"
@@ -142,8 +143,9 @@
       <button class="star ${star}" data-area="${a.area}" title="favorite">${favs.has(a.area)?'★':'☆'}</button>
       ${dl}
       ${thumb}
-      <div class="top"><span class="area">#${a.area}</span>${badge(a.type)}</div>
-      <div class="meta"><span class="size" style="background:${sz.color}">${sz.label}</span>${tag}</div>
+      <div class="top"><span class="area">#${a.area}</span>
+        <span class="tags">${badge(a.type)}<span class="size" style="background:${sz.color}">${sz.label}</span></span></div>
+      ${ready ? '' : `<div class="meta">${tag}</div>`}
     </a>`;
   }
 
